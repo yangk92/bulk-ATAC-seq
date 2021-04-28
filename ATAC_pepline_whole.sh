@@ -3,9 +3,9 @@ path=***/Cleandata
 BT2_HOME=~/reference/mouse/bowtie2index_base
 picardPath=/data1/yangk/software/picard/build/libs
 GenrichPath=~/software/Genrich
+mkdir fastqc motif
 awk 'BEGIN{FS="\t";OFS="\t";print "sample","all_reads","percent_duplication"}' > $path/stat_dup.report
 cd $path
-mkdir fastqc
 fastqc -o $path/fastqc/ -t 20 *.fq.gz
 for i in `ls *_1.fq.gz |cut -d _ -f1`;
 do cutadapt -j 30 --pair-filter=any --minimum-length 20 --max-n 8 -q 20  -a CTGTCTCTTATACACATCTCCGAGCCCACGAGAC -A CTGTCTCTTATACACATCTGACGCTGCCGACGA -o $path/${i}_rmadp_R1.fq.gz -p $path/${i}_rmadp_R2.fq.gz $path/${i}_1.fq.gz $path/${i}_2.fq.gz > $path/${i}_cutadapt.report
@@ -23,6 +23,7 @@ head -8 $path/${i}_dup.report|tail -1|awk 'BEGIN{FS="\t";OFS="\t"}{print "'${i}'
 samtools sort -@ 30 -n -o ${i}_rmdup.sam -O SAM ${i}_rmdup.bam
 $GenrichPath/Genrich -t ${i}_rmdup.sam -o $path/${i}.narrowpeak -j -f $path/${i}_peak.log -v
 bamCoverage -b $path/${i}_rmdup.bam -o $path/${i}.bw -bs 1 --normalizeUsing RPKM -p 30
+findMotifsGenome.pl $path/${i}.narrowpeak mm10 $path/motif/${i}/ -size given -mask;
 done
 cat $path/*narrowpeak | cut -f1-3 | sort -k1,1 -k2,2n | bedtools merge -i - > path/merged.bed
 awk 'BEGIN{OFS="\t"}{print $1"."$2"."$3,$1,$2,$3,"."}' merged.bed > merge_featurecounts.saf
